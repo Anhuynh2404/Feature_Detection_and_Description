@@ -15,7 +15,7 @@ class DataLoader:
         try:
             img = cv2.imread(img_path)
             if img is None:
-                print(f"[Lỗi đọc ảnh] {img_path}")
+                print(f"[Read Image Error] {img_path}")
                 return None
             
             if self.grayscale:
@@ -27,7 +27,7 @@ class DataLoader:
             # Chuyển về 1D
             return img_normalized.flatten()
         except Exception as e:
-            print(f"[Lỗi xử lý ảnh] {img_path}: {e}")
+            print(f"[Processor Image Error] {img_path}: {e}")
             return None
 
     def load_data(self, data_dir, train_ratio=0.8, random_state=42):
@@ -43,16 +43,16 @@ class DataLoader:
                        if os.path.isdir(os.path.join(data_dir, d))]
 
         class_names.sort()  # Đảm bảo nhãn luôn nhất quán
-        print(f"📂 Tìm thấy {len(class_names)} lớp: {class_names}")
+        print(f"Find {len(class_names)} Class: {class_names}")
 
         for class_idx, class_name in enumerate(class_names):
             class_dir = os.path.join(data_dir, class_name)
-            print(f"🔍 Đang xử lý lớp '{class_name}'...")
+            print(f"Processing  '{class_name}'...")
 
             image_files = [f for f in os.listdir(class_dir)
                            if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
 
-            print(f"  - Tìm thấy {len(image_files)} ảnh")
+            print(f"  - Find {len(image_files)} Images")
 
             for img_file in image_files:
                 img_path = os.path.join(class_dir, img_file)
@@ -75,8 +75,8 @@ class DataLoader:
         X_train, X_test = X[:split_idx], X[split_idx:]
         y_train, y_test = y[:split_idx], y[split_idx:]
 
-        print(f"✅ Dữ liệu huấn luyện: {X_train.shape}")
-        print(f"✅ Dữ liệu kiểm tra:   {X_test.shape}")
+        print(f"Train Data: {X_train.shape}")
+        print(f"Test Data:   {X_test.shape}")
 
         self.X_train = X_train
         self.y_train = y_train

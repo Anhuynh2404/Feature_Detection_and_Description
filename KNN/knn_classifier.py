@@ -40,10 +40,10 @@ class KNNClassifier:
         y_pred = self.predict(X_test)
         end = time.time()
         acc = np.mean(y_pred == y_test)
-        print("\n=== ĐÁNH GIÁ MÔ HÌNH ===")
-        print(f"Số mẫu kiểm tra: {len(y_test)}")
-        print(f"Độ chính xác: {acc:.4f}")
-        print(f"Thời gian dự đoán: {end - start:.2f} giây")
+        print("\n=== Evaluate Model ===")
+        print(f"Number of test sample: {len(y_test)}")
+        print(f"Accuracy: {acc:.4f}")
+        print(f"Predict time: {end - start:.2f} giây")
 
         # Confusion matrix
         n_classes = len(self.class_names)
