@@ -1,5 +1,50 @@
 import numpy as np
 
+# class Conv2D:
+#     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+#         self.stride = stride
+#         self.padding = padding
+#         self.in_channels = in_channels
+#         self.out_channels = out_channels
+#         self.kernel_size = kernel_size
+#         self.weights = np.random.randn(out_channels, in_channels, kernel_size, kernel_size) * np.sqrt(2. / (in_channels * kernel_size * kernel_size))
+#         self.bias = np.zeros((out_channels, 1))
+
+#     def forward(self, x):
+#         x_padded = np.pad(x, ((0,0), (0,0), (self.padding,self.padding), (self.padding,self.padding)), mode='constant')
+#         batch_size, _, h, w = x.shape
+#         out_h = (h + 2*self.padding - self.kernel_size) // self.stride + 1
+#         out_w = (w + 2*self.padding - self.kernel_size) // self.stride + 1
+#         out = np.zeros((batch_size, self.out_channels, out_h, out_w))
+#         for b in range(batch_size):
+#             for c_out in range(self.out_channels):
+#                 for i in range(out_h):
+#                     for j in range(out_w):
+#                         h_start = i * self.stride
+#                         h_end = h_start + self.kernel_size
+#                         w_start = j * self.stride
+#                         w_end = w_start + self.kernel_size
+#                         region = x_padded[b, :, h_start:h_end, w_start:w_end]
+#                         out[b, c_out, i, j] = np.sum(region * self.weights[c_out]) + self.bias[c_out]
+#         return out
+
+def im2col(input_data, filter_h, filter_w, stride=1, pad=0):
+    N, C, H, W = input_data.shape
+    out_h = (H + 2*pad - filter_h)//stride + 1
+    out_w = (W + 2*pad - filter_w)//stride + 1
+
+    img = np.pad(input_data, [(0,0), (0,0), (pad, pad), (pad, pad)], mode='constant')
+    cols = np.zeros((N, C, filter_h, filter_w, out_h, out_w))
+
+    for y in range(filter_h):
+        y_max = y + stride*out_h
+        for x in range(filter_w):
+            x_max = x + stride*out_w
+            cols[:, :, y, x, :, :] = img[:, :, y:y_max:stride, x:x_max:stride]
+
+    cols = cols.transpose(0, 4, 5, 1, 2, 3).reshape(N*out_h*out_w, -1)
+    return cols
+
 class Conv2D:
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
         self.stride = stride
@@ -7,26 +52,24 @@ class Conv2D:
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
+
+        # He initialization
         self.weights = np.random.randn(out_channels, in_channels, kernel_size, kernel_size) * np.sqrt(2. / (in_channels * kernel_size * kernel_size))
-        self.bias = np.zeros((out_channels, 1))
+        self.bias = np.zeros(out_channels)
 
     def forward(self, x):
-        x_padded = np.pad(x, ((0,0), (0,0), (self.padding,self.padding), (self.padding,self.padding)), mode='constant')
-        batch_size, _, h, w = x.shape
-        out_h = (h + 2*self.padding - self.kernel_size) // self.stride + 1
-        out_w = (w + 2*self.padding - self.kernel_size) // self.stride + 1
-        out = np.zeros((batch_size, self.out_channels, out_h, out_w))
-        for b in range(batch_size):
-            for c_out in range(self.out_channels):
-                for i in range(out_h):
-                    for j in range(out_w):
-                        h_start = i * self.stride
-                        h_end = h_start + self.kernel_size
-                        w_start = j * self.stride
-                        w_end = w_start + self.kernel_size
-                        region = x_padded[b, :, h_start:h_end, w_start:w_end]
-                        out[b, c_out, i, j] = np.sum(region * self.weights[c_out]) + self.bias[c_out]
+        N, C, H, W = x.shape
+        kH, kW = self.kernel_size, self.kernel_size
+        out_h = (H + 2*self.padding - kH)//self.stride + 1
+        out_w = (W + 2*self.padding - kW)//self.stride + 1
+
+        col = im2col(x, kH, kW, self.stride, self.padding)  # shape: (N*out_h*out_w, C*kH*kW)
+        col_W = self.weights.reshape(self.out_channels, -1).T  # shape: (C*kH*kW, out_channels)
+        out = np.dot(col, col_W) + self.bias  # shape: (N*out_h*out_w, out_channels)
+
+        out = out.reshape(N, out_h, out_w, self.out_channels).transpose(0, 3, 1, 2)  # (N, out_channels, out_h, out_w)
         return out
+
 
 class BatchNorm2D:
     def __init__(self, num_features, eps=1e-5, momentum=0.1):

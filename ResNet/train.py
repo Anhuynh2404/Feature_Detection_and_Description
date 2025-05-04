@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 # def train(model, dataset, loss_fn, optimizer, epochs=5, batch_size=8):
 #     losses = []
@@ -37,32 +38,49 @@ import numpy as np
 #         losses.append(avg_loss)
 #         print(f"Epoch {epoch+1} done in {time.time() - start_time:.2f}s, Avg Loss: {avg_loss:.4f}", flush=True)
 #     return losses
+def save_model(model, path="checkpoint.npz"):
+    np.savez(path, weights=model.fc.weights, bias=model.fc.bias)
 
 def train(model, dataset, loss_fn, optimizer, epochs=5, batch_size=4):
     losses = []
     for epoch in range(epochs):
+        print(f"\nEpoch {epoch+1}/{epochs} bắt đầu...\n")
         total_loss = 0
-        for X_batch, y_batch in dataset.get_batches(batch_size):
+        for batch_idx, (X_batch, y_batch) in enumerate(dataset.get_batches(batch_size)):
+            print(f"Batch {batch_idx+1} ─ Bắt đầu")
+
+            start = time.time()
             logits = model.forward(X_batch)
+            
+
+            print(" [Model] Forward")
+            logits = model.forward(X_batch)
+            print("[Model] Forward DONE in", time.time() - start, "seconds")
+
+            print(" [Loss] Tính toán CrossEntropy")
             loss, probs = loss_fn.forward(logits, y_batch)
             total_loss += loss
 
-            # Gradient từ loss
+            print(" [Loss] Backward từ output")
             dlogits = loss_fn.backward(probs, y_batch).T  # shape: (num_classes, batch)
 
-            # Backward từ fc layer
+            print(" [Linear] Backward FC layer")
             grad_input, grad_w, grad_b = model.fc.backward(dlogits)
 
-            # Gán lại đúng gradient
+            print(" [Optimizer] Cập nhật tham số")
             optimizer.parameters = [
                 (model.fc.weights, grad_w),
                 (model.fc.bias, grad_b)
             ]
             optimizer.step()
 
+            print("  Batch done\n")
+
         avg_loss = total_loss / (len(dataset) // batch_size)
         losses.append(avg_loss)
-        print(f"Epoch {epoch+1}, Loss: {avg_loss:.4f}", flush=True)
+        print(f"Epoch {epoch+1} hoàn thành - Loss TB: {avg_loss:.4f}")
+        save_model(model, f"checkpoint_epoch{epoch+1}.npz")
+
     return losses
 
 
