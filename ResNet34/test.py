@@ -19,6 +19,13 @@ def test(net, filename, image_h=128, image_w=128):
     net.eval()
     images, labels = get_test_images(filename, image_h, image_w)
     infers = np.zeros([images.shape[0]],dtype=np.int32)
+
+    print(f"Testing {images.shape[0]} image...")
     for i in range(images.shape[0]):
+        if i % 100 == 0:
+            print(f"→ Inference ảnh {i}/{images.shape[0]}")
         infers[i] = net.inference(images[i].reshape(1,3,image_h, image_w))
-    return np.sum(infers == labels) / infers.shape[0] 
+
+    acc = np.sum(infers == labels) / infers.shape[0]
+    print(f"Accuracy: {acc}")
+    return acc 

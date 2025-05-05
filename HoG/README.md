@@ -75,3 +75,6 @@ Các bước chính:
 - [Scikit-image: hog() function](https://scikit-image.org/docs/stable/auto_examples/features_detection/plot_hog.html)
 
 ---
+
+### Tính được Gradient bao gồm hai thành phần cường độ(Gradient Magnitude) và hướng(Gradient Derection) theo công thức:
+![Gradient Magnitude](../img/Gradient_M_d.png)

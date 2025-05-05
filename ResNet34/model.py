@@ -42,8 +42,9 @@ class ResBlock:
         assert self.out_tensor.shape == out_diff_tensor.shape
 
         self.relu.backward(out_diff_tensor,lr)
-        x1 = self.relu.in_diff_tensor
-        x2 = x1.copy()
+        grad = self.relu.in_diff_tensor
+        x1 = grad.copy()
+        x2 = grad.copy()
 
         for l in range(1, len(self.path1)+1):
             self.path1[-l].backward(x1, lr)
@@ -97,6 +98,8 @@ class resnet34:
         self.layer4 = self.stack_ResBlock(256, 512, 3, 2)
         self.avg = global_average_pooling()
         self.fc = fc_sigmoid(512, num_classes)
+
+
 
     def train(self):
         self.pre[1].train()

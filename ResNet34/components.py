@@ -47,6 +47,46 @@ class fc_sigmoid:
         self.bias = np.load(os.path.join(path, "fc_bias.npy"))
 
 
+class fc_linear:
+    def __init__(self, in_channels, out_channels):
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.init_param()
+
+    def init_param(self):
+        self.kernel = np.random.uniform(
+            low=-np.sqrt(6.0 / (self.out_channels + self.in_channels)),
+            high=np.sqrt(6.0 / (self.in_channels + self.out_channels)),
+            size=(self.out_channels, self.in_channels)
+        )
+        self.bias = np.zeros([self.out_channels])
+
+    def forward(self, in_tensor):
+        self.shape = in_tensor.shape
+        self.in_tensor = in_tensor.reshape(in_tensor.shape[0], -1).copy()
+        assert self.in_tensor.shape[1] == self.kernel.shape[1]
+        self.out_tensor = np.dot(self.in_tensor, self.kernel.T) + self.bias.T
+        return self.out_tensor
+
+    def backward(self, out_diff_tensor, lr):
+        assert out_diff_tensor.shape == self.out_tensor.shape
+        kernel_diff = np.dot(out_diff_tensor.T, self.in_tensor)
+        bias_diff = np.sum(out_diff_tensor, axis=0).reshape(self.bias.shape)
+        self.in_diff_tensor = np.dot(out_diff_tensor, self.kernel).reshape(self.shape)
+        self.kernel -= lr * kernel_diff
+        self.bias -= lr * bias_diff
+
+    def save(self, path):
+        if os.path.exists(path) == False:
+            os.mkdir(path)
+        np.save(os.path.join(path, "fc_weight.npy"), self.kernel)
+        np.save(os.path.join(path, "fc_bias.npy"), self.bias)
+
+    def load(self, path):
+        assert os.path.exists(path)
+        self.kernel = np.load(os.path.join(path, "fc_weight.npy"))
+        self.bias = np.load(os.path.join(path, "fc_bias.npy"))
+
 
 class conv_layer:
 
@@ -328,7 +368,8 @@ class bn_layer:
         m = self.in_tensor.shape[0] * self.in_tensor.shape[2] * self.in_tensor.shape[3]
 
         normalized_diff = self.gamma.reshape(1,-1,1,1) * out_diff_tensor
-        var_diff = -0.5 * np.sum(normalized_diff*self.normalized, axis=(0,2,3)) / (self.var + self.epsilon)
+        # var_diff = -0.5 * np.sum(normalized_diff*self.normalized, axis=(0,2,3)) / (self.var + self.epsilon)
+        var_diff = -0.5 * np.sum(normalized_diff * self.normalized, axis=(0,2,3)) / (np.sqrt(self.var + self.epsilon) * (self.var + self.epsilon))
         mean_diff = -1.0 * np.sum(normalized_diff, axis=(0,2,3)) / np.sqrt(self.var + self.epsilon)
         in_diff_tensor1 = normalized_diff / np.sqrt(self.var.reshape(1,-1,1,1)+self.epsilon)
         in_diff_tensor2 = var_diff.reshape(1,-1,1,1) * (self.in_tensor - self.mean.reshape(1,-1,1,1)) * 2 / m
@@ -361,3 +402,8 @@ class bn_layer:
         self.moving_var = np.load(os.path.join(path, "bn{}_var.npy".format(bn_num)))
 
         return bn_num + 1
+    
+
+def softmax(x):
+    e_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+    return e_x / np.sum(e_x, axis=1, keepdims=True)
